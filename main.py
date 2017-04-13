@@ -10,9 +10,17 @@ import sys
 import os
 
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QSize
-from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QListView,\
-    QVBoxLayout, QCalendarWidget, QFrame, QDialog, QLabel
+from PyQt5.QtCore import QSize, QFile
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QTableView,
+                             QVBoxLayout, QCalendarWidget, QFrame, QDialog,
+                             QLabel, QTextEdit, QMessageBox)
+
+from PyQt5.QtSql import (QSqlRelation, QSqlRelationalTableModel,
+                         QSqlRelationalDelegate, QSqlDatabase, QSqlQuery,
+                         QSqlTableModel)
+
+import initDb
+
 
 
 class MainWindow(QMainWindow):
@@ -20,6 +28,8 @@ class MainWindow(QMainWindow):
         super().__init__(parent)
         self.setWindowTitle('Food Log')
         self.resize(925, 577)
+
+        initDb.setupModel()
 
         self.widget = MyDialog()
         self.setCentralWidget(self.widget)
@@ -30,7 +40,7 @@ class MyDialog(QDialog):
         super().__init__(parent)
 
         horizontalLayout = QHBoxLayout()
-        dayView = QListView()
+        dayView = QTableView()
         dayView.setFrameShape(QFrame.Box)
         horizontalLayout.addWidget(dayView)
 
@@ -43,7 +53,11 @@ class MyDialog(QDialog):
         titleFV = QLabel('Food View')
         verticalLayout.addWidget(titleFV)
 
-        foodView = QListView()
+        lineEdit = QTextEdit()
+        lineEdit.setMaximumSize(QSize(250, 25))
+        verticalLayout.addWidget(lineEdit)
+
+        foodView = QTableView()
         foodView.setMinimumSize(QSize(0, 0))
         foodView.setMaximumSize(QSize(250, 1000))
         verticalLayout.addWidget(foodView)
