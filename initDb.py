@@ -29,7 +29,7 @@ def setupModel():
             id INTEGER PRIMARY KEY  NOT NULL,
             id_food Integer,
             food_date VARCHAR,
-            massa INTEGER,
+            mass INTEGER,
             FOREIGN KEY(id_food) REFERENCES food(id))""")
 
         for name in (("meat", 5), ("fish", 4), ("bread", 3)):
