@@ -10,11 +10,23 @@ import sys
 import os
 
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QSize, QFile, Qt, QDate
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget,
-                             QAbstractItemView, QHBoxLayout, QTableView,
-                             QVBoxLayout,QGridLayout, QCalendarWidget, QFrame, QLabel,
-                             QTextEdit, QMessageBox, QPushButton)
+from PyQt5.QtCore import (QSize, QFile, Qt, QDate, QSortFilterProxyModel,
+                          QRegExp)
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QAbstractItemView,
+    QHBoxLayout,
+    QTableView,
+    QVBoxLayout,
+    QGridLayout,
+    QCalendarWidget,
+    QFrame,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton, )
 
 from PyQt5.QtSql import (QSqlRelation, QSqlRelationalTableModel,
                          QSqlRelationalDelegate, QSqlDatabase, QSqlQuery,
@@ -27,7 +39,7 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('Food Log')
-        self.resize(925, 577)
+        self.resize(600, 577)
 
         initDb.setupModel()
 
@@ -40,40 +52,50 @@ class MyWidget(QWidget):
         super().__init__(parent)
 
         horizontalLayout = QHBoxLayout()
-        dayView = QTableView()
-        dayView.setFrameShape(QFrame.Box)
-        horizontalLayout.addWidget(dayView)
+        self.dayView = QTableView()
+        self.dayView.setFrameShape(QFrame.Box)
+        self.dayView.horizontalHeader().setStretchLastSection(True)
+        self.dayView.verticalHeader().setVisible(False)
+        horizontalLayout.addWidget(self.dayView)
 
         verticalLayout = QVBoxLayout()
-        calendarWidget = QCalendarWidget()
-        calendarWidget.setMinimumSize(QSize(250, 200))
-        calendarWidget.setMaximumSize(QSize(250, 200))
-        calendarWidget.setMinimumDate(QDate(2017, 1, 1))
-        calendarWidget.setMaximumDate(QDate(2030, 1, 1))
-        calendarWidget.setSelectedDate(QDate.currentDate())
-        verticalLayout.addWidget(calendarWidget)
+        self.calendarWidget = QCalendarWidget()
+        self.calendarWidget.setMinimumSize(QSize(250, 200))
+        self.calendarWidget.setMaximumSize(QSize(250, 200))
+        self.calendarWidget.setMinimumDate(QDate(2017, 1, 1))
+        self.calendarWidget.setMaximumDate(QDate(2030, 1, 1))
+        self.calendarWidget.selectionChanged.connect(self.dataChange)
+        self.calendarWidget.setSelectedDate(QDate.currentDate())
+
+        verticalLayout.addWidget(self.calendarWidget)
 
         titleFV = QLabel('Food View')
         verticalLayout.addWidget(titleFV)
 
-        lineEdit = QTextEdit()
-        lineEdit.setMaximumSize(QSize(200, 25))
-        buttonAdd = QPushButton(QIcon("images/add.png"),'',None)
+        self.filterLine = QLineEdit()
+        self.filterLine.setMaximumSize(QSize(200, 25))
+
+        self.filterLine.textChanged.connect(self.filterChange)
+
+        buttonAdd = QPushButton(QIcon("images/add.png"), '', None)
         buttonAdd.setMaximumSize(QSize(20, 30))
-        buttonDell = QPushButton(QIcon("images/del.png"),'',None)
+        buttonDell = QPushButton(QIcon("images/del.png"), '', None)
         buttonDell.setMaximumSize(QSize(20, 30))
 
         lineEditLayout = QHBoxLayout()
-        lineEditLayout.addWidget(lineEdit)
+        lineEditLayout.addWidget(self.filterLine)
         lineEditLayout.addWidget(buttonAdd)
         lineEditLayout.addWidget(buttonDell)
-        
+
         verticalLayout.addLayout(lineEditLayout)
 
-        foodView = QTableView()
-        foodView.setMinimumSize(QSize(0, 0))
-        foodView.setMaximumSize(QSize(250, 1000))
-        verticalLayout.addWidget(foodView)
+        self.foodView = QTableView()
+        self.foodView.setMinimumSize(QSize(0, 0))
+        self.foodView.setMaximumSize(QSize(250, 1000))
+        self.foodView.verticalHeader().setVisible(False)
+        self.foodView.horizontalHeader().setStretchLastSection(True)
+
+        verticalLayout.addWidget(self.foodView)
         horizontalLayout.addLayout(verticalLayout)
 
         self.setLayout(horizontalLayout)
@@ -96,30 +118,59 @@ class MyWidget(QWidget):
             self.showError(model_in.lastError())
             return
 
-        dayView.setModel(model_in)
-        dayView.setItemDelegate(QSqlRelationalDelegate())
-        dayView.setColumnHidden(0, True)
-        dayView.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.proxyModel_in = QSortFilterProxyModel()
+        self.proxyModel_in.setSourceModel(model_in)
+        self.proxyModel_in.setFilterKeyColumn(2)
 
-        model_f = QSqlRelationalTableModel()
-        model_f.setEditStrategy(QSqlTableModel.OnManualSubmit)
-        model_f.setFilter("mea")
-        model_f.setTable("food")
+        self.dayView.setModel(self.proxyModel_in)
+        self.dayView.setItemDelegate(QSqlRelationalDelegate())
+        self.dayView.setColumnHidden(0, True)
+        self.dayView.setColumnHidden(2, True)
+        self.dayView.setSelectionMode(QAbstractItemView.SingleSelection)
+        # filter day food by calendar widget
+        self.dataChange()
 
-        name = model_f.fieldIndex("name")
+        self.model_f = QSqlRelationalTableModel()
+        self.model_f.setEditStrategy(QSqlTableModel.OnManualSubmit)
+        self.model_f.setTable("food")
 
-        if not model_f.select():
-            self.showError(model_f.lastError())
+        self.model_f.setHeaderData(1, Qt.Horizontal, "Food")
+        self.model_f.setHeaderData(2, Qt.Horizontal, "Rate")
+
+        if not self.model_f.select():
+            self.showError(self.model_f.lastError())
             return
 
-        foodView.setModel(model_f)
-        foodView.setColumnHidden(0, True)
-        foodView.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.proxyModel_f = QSortFilterProxyModel()
+        self.proxyModel_f.setSourceModel(self.model_f)
+        self.proxyModel_f.setFilterKeyColumn(1)
+
+        self.foodView.setModel(self.proxyModel_f)
+        self.foodView.setColumnHidden(0, True)
+        self.foodView.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.foodView.setColumnWidth(1, 150)
+        self.foodView.setColumnWidth(2, 90)
 
     def showError(self, err):
 
         QMessageBox.critical(self, "Unable to initialize Database",
                              "Error initializing database: " + err.text())
+
+    def filterChange(self):
+        regExp = QRegExp(self.filterLine.text(), Qt.CaseInsensitive,
+                         QRegExp.FixedString)
+        self.proxyModel_f.setFilterRegExp(regExp)
+
+    def dataChange(self):
+        date = self.calendarWidget.selectedDate().toString('dd.MM.yyyy')
+        regExp = QRegExp(date, Qt.CaseInsensitive, QRegExp.FixedString)
+        self.proxyModel_in.setFilterRegExp(regExp)
+
+    def resizeEvent(self, event):
+        self.dayView.setColumnWidth(1, self.dayView.width() * 0.7)
+        self.dayView.setColumnWidth(3, self.dayView.width() * 0.2)
+
+        QWidget.resizeEvent(self, event)
 
 
 if __name__ == '__main__':
