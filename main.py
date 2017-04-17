@@ -13,8 +13,8 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize, QFile, Qt, QDate
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget,
                              QAbstractItemView, QHBoxLayout, QTableView,
-                             QVBoxLayout, QCalendarWidget, QFrame, QLabel,
-                             QTextEdit, QMessageBox)
+                             QVBoxLayout,QGridLayout, QCalendarWidget, QFrame, QLabel,
+                             QTextEdit, QMessageBox, QPushButton)
 
 from PyQt5.QtSql import (QSqlRelation, QSqlRelationalTableModel,
                          QSqlRelationalDelegate, QSqlDatabase, QSqlQuery,
@@ -57,8 +57,18 @@ class MyWidget(QWidget):
         verticalLayout.addWidget(titleFV)
 
         lineEdit = QTextEdit()
-        lineEdit.setMaximumSize(QSize(250, 25))
-        verticalLayout.addWidget(lineEdit)
+        lineEdit.setMaximumSize(QSize(200, 25))
+        buttonAdd = QPushButton(QIcon("images/add.png"),'',None)
+        buttonAdd.setMaximumSize(QSize(20, 30))
+        buttonDell = QPushButton(QIcon("images/del.png"),'',None)
+        buttonDell.setMaximumSize(QSize(20, 30))
+
+        lineEditLayout = QHBoxLayout()
+        lineEditLayout.addWidget(lineEdit)
+        lineEditLayout.addWidget(buttonAdd)
+        lineEditLayout.addWidget(buttonDell)
+        
+        verticalLayout.addLayout(lineEditLayout)
 
         foodView = QTableView()
         foodView.setMinimumSize(QSize(0, 0))
