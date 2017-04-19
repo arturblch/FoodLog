@@ -33,7 +33,7 @@ from PyQt5.QtSql import (QSqlRelation, QSqlRelationalTableModel,
                          QSqlTableModel, QSqlRelationalDelegate)
 
 import initDb
-
+from FlipProxyDelegate import FlipProxyDelegate
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -45,6 +45,7 @@ class MainWindow(QMainWindow):
 
         self.widget = MyWidget()
         self.setCentralWidget(self.widget)
+        self.setWindowIcon(QIcon("images/apple.png"))
 
 
 class MyWidget(QWidget):
@@ -79,8 +80,10 @@ class MyWidget(QWidget):
 
         buttonAdd = QPushButton(QIcon("images/add.png"), '', None)
         buttonAdd.setMaximumSize(QSize(20, 30))
+        buttonAdd.clicked.connect(self.addFood)
         buttonDell = QPushButton(QIcon("images/del.png"), '', None)
         buttonDell.setMaximumSize(QSize(20, 30))
+        buttonAdd.clicked.connect(self.delFood)
 
         lineEditLayout = QHBoxLayout()
         lineEditLayout.addWidget(self.filterLine)
@@ -101,7 +104,7 @@ class MyWidget(QWidget):
         self.setLayout(horizontalLayout)
 
         model_in = QSqlRelationalTableModel()
-        model_in.setEditStrategy(QSqlTableModel.OnManualSubmit)
+        model_in.setEditStrategy(QSqlTableModel.OnFieldChange)
         model_in.setTable("intake_food")
 
         id_food = model_in.fieldIndex("id_food")
@@ -122,8 +125,8 @@ class MyWidget(QWidget):
         self.proxyModel_in.setSourceModel(model_in)
         self.proxyModel_in.setFilterKeyColumn(2)
 
+        self.dayView.setItemDelegate(FlipProxyDelegate())
         self.dayView.setModel(self.proxyModel_in)
-        self.dayView.setItemDelegate(QSqlRelationalDelegate())
         self.dayView.setColumnHidden(0, True)
         self.dayView.setColumnHidden(2, True)
         self.dayView.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -131,7 +134,7 @@ class MyWidget(QWidget):
         self.dataChange()
 
         self.model_f = QSqlRelationalTableModel()
-        self.model_f.setEditStrategy(QSqlTableModel.OnManualSubmit)
+        self.model_f.setEditStrategy(QSqlTableModel.OnFieldChange)
         self.model_f.setTable("food")
 
         self.model_f.setHeaderData(1, Qt.Horizontal, "Food")
@@ -165,6 +168,12 @@ class MyWidget(QWidget):
         date = self.calendarWidget.selectedDate().toString('dd.MM.yyyy')
         regExp = QRegExp(date, Qt.CaseInsensitive, QRegExp.FixedString)
         self.proxyModel_in.setFilterRegExp(regExp)
+
+    def addFood(self):
+        self.model_f.addrow(self.model_f.columnCount())
+
+    def delFood(self):
+        print(self.foodView.selectedIndexes())
 
     def resizeEvent(self, event):
         self.dayView.setColumnWidth(1, self.dayView.width() * 0.7)
