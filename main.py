@@ -13,20 +13,9 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import (QSize, QFile, Qt, QDate, QSortFilterProxyModel,
                           QRegExp)
 from PyQt5.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QWidget,
-    QAbstractItemView,
-    QHBoxLayout,
-    QTableView,
-    QVBoxLayout,
-    QGridLayout,
-    QCalendarWidget,
-    QFrame,
-    QLabel,
-    QLineEdit,
-    QMessageBox,
-    QPushButton, )
+    QApplication, QMainWindow, QWidget, QAbstractItemView, QHBoxLayout,
+    QTableView, QVBoxLayout, QGridLayout, QCalendarWidget, QFrame, QLabel,
+    QLineEdit, QMessageBox, QPushButton, QMenu, QAction)
 
 from PyQt5.QtSql import (QSqlRelation, QSqlRelationalTableModel,
                          QSqlRelationalDelegate, QSqlDatabase, QSqlQuery,
@@ -34,6 +23,7 @@ from PyQt5.QtSql import (QSqlRelation, QSqlRelationalTableModel,
 
 import initDb
 from FlipProxyDelegate import FlipProxyDelegate
+
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -83,7 +73,7 @@ class MyWidget(QWidget):
         buttonAdd.clicked.connect(self.addFood)
         buttonDell = QPushButton(QIcon("images/del.png"), '', None)
         buttonDell.setMaximumSize(QSize(20, 30))
-        buttonAdd.clicked.connect(self.delFood)
+        buttonDell.clicked.connect(self.delFood)
 
         lineEditLayout = QHBoxLayout()
         lineEditLayout.addWidget(self.filterLine)
@@ -130,6 +120,8 @@ class MyWidget(QWidget):
         self.dayView.setColumnHidden(0, True)
         self.dayView.setColumnHidden(2, True)
         self.dayView.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.dayView.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.dayView.customContextMenuRequested.connect(self.ShowContextMenu)
         # filter day food by calendar widget
         self.dataChange()
 
@@ -170,16 +162,24 @@ class MyWidget(QWidget):
         self.proxyModel_in.setFilterRegExp(regExp)
 
     def addFood(self):
-        self.model_f.addrow(self.model_f.columnCount())
+        self.model_f.insertRow(self.model_f.rowCount())
 
     def delFood(self):
-        print(self.foodView.selectedIndexes())
+        self.model_f.removeRow(self.foodView.currentIndex().row())
+        self.model_f.select()
 
     def resizeEvent(self, event):
         self.dayView.setColumnWidth(1, self.dayView.width() * 0.7)
         self.dayView.setColumnWidth(3, self.dayView.width() * 0.2)
 
         QWidget.resizeEvent(self, event)
+
+    def ShowContextMenu(self, pos):
+        contextMenu = QMenu("Context menu", self)
+
+        action1 = QAction("Add food eaten", self)
+        contextMenu.addAction(action1)
+        contextMenu.exec(self.mapToGlobal(pos))
 
 
 if __name__ == '__main__':
